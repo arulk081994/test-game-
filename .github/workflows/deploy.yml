@@ -1,0 +1,28 @@
+name: Deploy to Amazon Linux AMI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t python-game .
+
+      - name: Save and transfer image
+        run: |
+          docker save python-game -o game.tar
+          scp -o StrictHostKeyChecking=no game.tar ec2-user@${{ secrets.EC2_HOST }}:~/game.tar
+
+      - name: Deploy on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} "
+            docker load -i ~/game.tar
+            docker stop game || true
+            docker rm game || true
+            docker run -d --name game -p 5000:5000 python-game
+          "
