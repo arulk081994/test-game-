@@ -1,4 +1,4 @@
-name: Deploy to Amazon Linux AMI
+name: Deploy to EC2
 
 on:
   push:
@@ -9,18 +9,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: docker build -t python-game .
-
-      - name: Save and transfer image
+      
+      - name: Configure SSH
         run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.EC2_HOST }} ssh-ed25519 AAAAC3..." >> ~/.ssh/known_hosts
+          
+      - name: Build and Transfer Docker Image
+        run: |
+          docker build -t python-game .
           docker save python-game -o game.tar
-          scp -o StrictHostKeyChecking=no game.tar ec2-user@${{ secrets.EC2_HOST }}:~/game.tar
-
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no game.tar ec2-user@${{ secrets.EC2_HOST }}:~/game.tar
+          
       - name: Deploy on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} "
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} "
             docker load -i ~/game.tar
             docker stop game || true
             docker rm game || true
