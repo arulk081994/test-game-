@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Number Guesser</title>
+</head>
+<body>
+    <h1>Guess the Number (1-100)</h1>
+    <form action="/guess" method="get">
+        <input type="number" name="guess" min="1" max="100">
+        <input type="hidden" name="secret" value="{{ secret_number }}">
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
